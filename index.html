@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Could Sentence Builder</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#264653;
+    --ink-deep:#152D37;
+    --red:#E76F51;
+    --red-deep:#A64B36;
+    --orange:#F4A261;
+    --orange-deep:#B06A2E;
+    --gold:#E9C46A;
+    --gold-deep:#8C6B27;
+    --green:#2A9D8F;
+    --green-deep:#1E7267;
+    --paper:#FFFFFF;
+    --line:#DCE3E4;
+  }
+
+  *{ box-sizing:border-box; }
+
+  html,body{
+    margin:0;
+    padding:0;
+    min-height:100vh;
+    background:var(--ink);
+    font-family:'Inter',sans-serif;
+    color:var(--paper);
+  }
+
+  body{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:2.5rem 1.25rem 3rem;
+  }
+
+  /* ---------- background texture ---------- */
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    background:
+      radial-gradient(circle at 12% 10%, rgba(233,196,106,0.14), transparent 40%),
+      radial-gradient(circle at 90% 85%, rgba(42,157,143,0.30), transparent 45%);
+    pointer-events:none;
+    z-index:0;
+  }
+
+  .wrap{ position:relative; z-index:1; width:100%; max-width:760px; }
+
+  /* ---------- header ---------- */
+  header{ text-align:center; margin-bottom:1.9rem; }
+
+  .eyebrow{
+    font-family:'Inter',sans-serif;
+    font-size:.72rem;
+    font-weight:700;
+    letter-spacing:.22em;
+    text-transform:uppercase;
+    color:var(--gold);
+    margin:0 0 .6rem;
+  }
+
+  h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:clamp(1.9rem, 5vw, 2.7rem);
+    font-weight:700;
+    margin:0 0 .5rem;
+    letter-spacing:-0.01em;
+  }
+  h1 span{ color:var(--gold); }
+
+  .sub{
+    font-size:.95rem;
+    color:#BFD4D6;
+    max-width:520px;
+    margin:0 auto;
+    line-height:1.5;
+  }
+
+  /* ---------- progress dots ---------- */
+  .progress{
+    display:flex;
+    justify-content:center;
+    gap:.5rem;
+    margin-top:1.4rem;
+  }
+  .dot{
+    width:2.1rem;
+    height:2.1rem;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:.8rem;
+    font-weight:700;
+    font-family:'Space Grotesk',sans-serif;
+    background:rgba(255,255,255,0.08);
+    color:#8AA7AC;
+    border:2px solid transparent;
+    transition:all .25s ease;
+  }
+  .dot.current{ border-color:var(--gold); color:var(--paper); background:rgba(233,196,106,0.18); }
+  .dot.done-correct{ background:var(--green); color:var(--paper); }
+  .dot.done-wrong{ background:var(--red); color:var(--paper); }
+
+  /* ---------- card ---------- */
+  .card{
+    background:var(--paper);
+    color:var(--ink);
+    border-radius:20px;
+    padding:2rem 1.75rem 1.75rem;
+    box-shadow:0 24px 60px rgba(0,0,0,0.35);
+  }
+
+  .card-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:1rem;
+    flex-wrap:wrap;
+    gap:.4rem;
+  }
+
+  .count-label{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:1.05rem;
+    color:var(--ink);
+  }
+
+  .task-hint{
+    font-size:.82rem;
+    color:var(--orange-deep);
+    font-style:italic;
+  }
+
+  /* ---------- start screen ---------- */
+  .start{ text-align:center; padding:.6rem 0 .4rem; }
+  .start-eyebrow{
+    font-size:.72rem;
+    font-weight:700;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--green);
+    margin:0 0 .5rem;
+  }
+  .start-title{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:1.6rem;
+    font-weight:700;
+    margin:0 0 .55rem;
+    color:var(--ink);
+  }
+  .start-sub{
+    font-size:.92rem;
+    color:#5A6B70;
+    max-width:420px;
+    margin:0 auto 1.5rem;
+    line-height:1.5;
+  }
+  .start-field{
+    display:flex;
+    gap:.6rem;
+    justify-content:center;
+    flex-wrap:wrap;
+  }
+  input#nameInput{
+    font-family:'Inter',sans-serif;
+    font-size:1rem;
+    padding:.75rem 1rem;
+    border-radius:10px;
+    border:2px solid var(--line);
+    min-width:220px;
+    flex:1 1 220px;
+    max-width:320px;
+    color:var(--ink);
+    background:var(--paper);
+  }
+  input#nameInput:focus-visible{ outline:3px solid var(--green); outline-offset:1px; }
+  .start-error{
+    color:var(--red);
+    font-size:.85rem;
+    margin:.8rem 0 0;
+    min-height:1.1rem;
+  }
+
+  /* ---------- answer rail (puzzle slots) ---------- */
+  .rail{
+    min-height:4.2rem;
+    background:var(--paper);
+    border:2px dashed var(--line);
+    border-radius:14px;
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:.5rem;
+    padding:.7rem;
+    margin-bottom:1.3rem;
+    transition:border-color .2s ease;
+  }
+  .rail.filled{ border-style:solid; border-color:var(--line); }
+  .rail-placeholder{
+    color:#93A5AA;
+    font-size:.88rem;
+    font-style:italic;
+    padding:.4rem .2rem;
+  }
+
+  /* ---------- word tiles ---------- */
+  .tile{
+    position:relative;
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:1rem;
+    color:var(--ink);
+    background:var(--paper);
+    border:2px solid var(--line);
+    border-radius:10px;
+    padding:.62rem 1rem;
+    cursor:pointer;
+    user-select:none;
+    transition:transform .12s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
+    box-shadow:0 2px 0 var(--line);
+  }
+  .tile:hover{ transform:translateY(-2px); box-shadow:0 5px 10px rgba(38,70,83,0.18); }
+  .tile:focus-visible{ outline:3px solid var(--green); outline-offset:2px; }
+  .tile:active{ transform:translateY(0); }
+
+  /* puzzle notch on bank tiles: little bump on the right */
+  .bank .tile::after{
+    content:"";
+    position:absolute;
+    right:-7px;
+    top:50%;
+    transform:translateY(-50%);
+    width:14px;
+    height:14px;
+    border-radius:50%;
+    background:var(--paper);
+    border:2px solid var(--line);
+  }
+
+  /* placed tile: numbered badge + connecting notch on the left */
+  .tile.placed{
+    background:var(--ink);
+    border-color:var(--ink);
+    color:var(--paper);
+    box-shadow:0 2px 0 var(--ink-deep);
+    padding-left:1.9rem;
+  }
+  .tile.placed::before{
+    content:attr(data-order);
+    position:absolute;
+    left:.5rem;
+    top:50%;
+    transform:translateY(-50%);
+    width:1.1rem;
+    height:1.1rem;
+    border-radius:50%;
+    background:var(--gold);
+    color:var(--ink-deep);
+    font-size:.68rem;
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .tile.placed::after{ content:none; }
+  .tile.placed:hover{ transform:translateY(-2px); box-shadow:0 5px 10px rgba(21,45,55,0.35); }
+
+  .bank{
+    display:flex;
+    flex-wrap:wrap;
+    gap:.6rem .9rem;
+    margin-bottom:1.4rem;
+    padding-top:.3rem;
+  }
+
+  /* ---------- buttons ---------- */
+  .actions{ display:flex; gap:.7rem; flex-wrap:wrap; }
+
+  button.btn{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:600;
+    font-size:.92rem;
+    border-radius:10px;
+    padding:.72rem 1.3rem;
+    border:none;
+    cursor:pointer;
+    transition:transform .12s ease, opacity .12s ease, box-shadow .12s ease;
+  }
+  button.btn:hover:not(:disabled){ transform:translateY(-2px); }
+  button.btn:focus-visible{ outline:3px solid var(--green); outline-offset:2px; }
+  button.btn:disabled{ opacity:.4; cursor:not-allowed; }
+
+  .btn-ghost{
+    background:transparent;
+    color:var(--ink);
+    border:2px solid var(--line);
+  }
+  .btn-primary{
+    background:var(--green);
+    color:var(--paper);
+    box-shadow:0 4px 0 var(--green-deep);
+  }
+  .btn-primary:hover:not(:disabled){ box-shadow:0 6px 0 var(--green-deep); }
+  .btn-primary:active:not(:disabled){ transform:translateY(2px); box-shadow:0 2px 0 var(--green-deep); }
+
+  /* ---------- feedback ---------- */
+  .feedback{
+    margin-top:1.3rem;
+    border-radius:14px;
+    padding:1.1rem 1.2rem;
+    animation:rise .28s ease;
+  }
+  @keyframes rise{ from{ opacity:0; transform:translateY(6px);} to{ opacity:1; transform:translateY(0);} }
+
+  .feedback.correct{ background:rgba(42,157,143,0.13); border:2px solid var(--green); }
+  .feedback.wrong{ background:rgba(231,111,81,0.11); border:2px solid var(--red); }
+
+  .fb-title{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:1.1rem;
+    margin:0 0 .45rem;
+    display:flex;
+    align-items:center;
+    gap:.5rem;
+  }
+  .feedback.correct .fb-title{ color:var(--green-deep); }
+  .feedback.wrong .fb-title{ color:var(--red-deep); }
+
+  .fb-sentence{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:1.05rem;
+    font-weight:600;
+    color:var(--ink);
+    margin:.2rem 0 .55rem;
+  }
+
+  .fb-tag{
+    display:inline-block;
+    font-size:.72rem;
+    font-weight:700;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    background:var(--ink);
+    color:var(--paper);
+    padding:.22rem .6rem;
+    border-radius:100px;
+    margin-bottom:.5rem;
+  }
+
+  .fb-tip{ font-size:.88rem; color:#48595E; line-height:1.5; }
+
+  /* ---------- results screen ---------- */
+  .results h2{
+    font-family:'Space Grotesk',sans-serif;
+    text-align:center;
+    font-size:1.3rem;
+    margin:0 0 .3rem;
+    color:var(--ink);
+  }
+  .score-big{
+    text-align:center;
+    font-family:'Space Grotesk',sans-serif;
+    font-size:4rem;
+    font-weight:700;
+    color:var(--ink);
+    line-height:1;
+    margin:.6rem 0 .2rem;
+  }
+  .score-big span{ font-size:1.8rem; color:var(--orange-deep); }
+  .score-msg{ text-align:center; color:var(--green-deep); font-size:.95rem; margin-bottom:1.5rem; }
+
+  .review-item{
+    display:flex;
+    gap:.8rem;
+    align-items:flex-start;
+    padding:.85rem 0;
+    border-top:1px solid var(--line);
+  }
+  .review-item:first-of-type{ border-top:none; }
+  .review-icon{
+    flex:0 0 auto;
+    width:1.6rem;
+    height:1.6rem;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:.85rem;
+    font-weight:700;
+    color:var(--paper);
+    margin-top:.1rem;
+  }
+  .review-icon.ok{ background:var(--green); }
+  .review-icon.no{ background:var(--red); }
+  .review-text .r-correct{ font-weight:600; color:var(--ink); font-size:.95rem; }
+  .review-text .r-user{ font-size:.83rem; color:var(--red-deep); margin-top:.15rem; }
+
+  .center{ display:flex; justify-content:center; margin-top:1.6rem; }
+
+  footer{
+    margin-top:2rem;
+    text-align:center;
+    font-size:.78rem;
+    color:#7C9398;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.001ms !important; transition-duration:0.001ms !important; }
+  }
+
+  @media (max-width:480px){
+    .card{ padding:1.4rem 1.1rem 1.3rem; }
+    .actions{ flex-direction:column; }
+    .actions button{ width:100%; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">English Grammar · Modal Verbs</p>
+    <h1>Could <span>Sentence Builder</span></h1>
+    <p class="sub">Tap the words in the correct order to build each sentence with <strong>could</strong>.</p>
+    <div class="progress" id="progress"></div>
+  </header>
+
+  <div class="card" id="card"></div>
+
+  <footer>Built to practice the modal verb <strong>could</strong> · By Joan S. Escalante</footer>
+</div>
+
+<script>
+/* ---------------------------------------------------------
+   DATA
+--------------------------------------------------------- */
+const SENTENCES = [
+  {
+    words: ["She","could","speak","French","fluently."],
+    type: "Affirmative",
+    tip: "Structure: subject + could + base verb. We use \u201Ccould\u201D to talk about a general ability in the past."
+  },
+  {
+    words: ["I","couldn't","finish","the","homework","yesterday."],
+    type: "Negative",
+    tip: "Structure: subject + couldn't + base verb. The negative form is \u201Ccouldn't\u201D (could not)."
+  },
+  {
+    words: ["Could","you","close","the","window,","please?"],
+    type: "Interrogative",
+    tip: "Structure: Could + subject + base verb...? This is how we make polite requests."
+  },
+  {
+    words: ["It","could","rain","this","afternoon."],
+    type: "Affirmative",
+    tip: "Structure: subject + could + base verb. Here \u201Ccould\u201D expresses possibility, not certainty."
+  },
+  {
+    words: ["Could","the","meeting","start","earlier","tomorrow?"],
+    type: "Interrogative",
+    tip: "Structure: Could + subject + base verb...? We also use this to ask about a possibility."
+  }
+];
+
+/* ---------------------------------------------------------
+   STATE (in-memory only)
+--------------------------------------------------------- */
+let playerName = "";
+let current = 0;
+let score = 0;
+let bank = [];        // shuffled word indices
+let placed = [];      // ordered array of tile ids
+let answered = false;
+let history = [];     // {correct: bool, userSentence, correctSentence}
+
+const cardEl = document.getElementById("card");
+const progressEl = document.getElementById("progress");
+
+/* ---------------------------------------------------------
+   HELPERS
+--------------------------------------------------------- */
+function shuffledIndices(n){
+  let arr = [...Array(n).keys()];
+  let same = true;
+  while(same){
+    for(let i = arr.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    same = arr.every((v,i) => v === i);
+  }
+  return arr;
+}
+
+function escapeHtml(str){
+  const d = document.createElement("div");
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function renderProgress(){
+  progressEl.innerHTML = "";
+  for(let i = 0; i < SENTENCES.length; i++){
+    const d = document.createElement("div");
+    d.className = "dot";
+    if(i === current && !isFinished()) d.className += " current";
+    if(history[i]) d.className += history[i].correct ? " done-correct" : " done-wrong";
+    d.textContent = i + 1;
+    progressEl.appendChild(d);
+  }
+}
+
+function isFinished(){ return current >= SENTENCES.length; }
+
+/* ---------------------------------------------------------
+   RENDER: START SCREEN
+--------------------------------------------------------- */
+function renderStart(){
+  progressEl.innerHTML = "";
+  cardEl.innerHTML = `
+    <div class="start">
+      <p class="start-eyebrow">Before you start</p>
+      <h2 class="start-title">What's your name?</h2>
+      <p class="start-sub">Enter your name.</p>
+      <div class="start-field">
+        <input type="text" id="nameInput" placeholder="Your name" maxlength="40" autocomplete="off">
+        <button class="btn btn-primary" id="startBtn" type="button">Start</button>
+      </div>
+      <p class="start-error" id="startError"></p>
+    </div>
+  `;
+
+  const input = document.getElementById("nameInput");
+  const startBtn = document.getElementById("startBtn");
+  const err = document.getElementById("startError");
+
+  function tryStart(){
+    const val = input.value.trim();
+    if(!val){
+      err.textContent = "Enter your name to continue.";
+      input.focus();
+      return;
+    }
+    playerName = val;
+    startGame();
+  }
+
+  startBtn.addEventListener("click", tryStart);
+  input.addEventListener("keydown", (e) => { if(e.key === "Enter") tryStart(); });
+  input.focus();
+}
+
+/* ---------------------------------------------------------
+   RENDER: GAME SCREEN
+--------------------------------------------------------- */
+function renderGame(){
+  renderProgress();
+
+  cardEl.innerHTML = `
+    <div class="card-top">
+      <span class="count-label">Sentence ${current + 1} of ${SENTENCES.length}</span>
+      <span class="task-hint">Tap the words in order ↓</span>
+    </div>
+    <div class="rail" id="rail"></div>
+    <div class="bank" id="bank"></div>
+    <div class="actions">
+      <button class="btn btn-ghost" id="resetBtn" type="button">Reset order</button>
+      <button class="btn btn-primary" id="checkBtn" type="button" disabled>Check</button>
+    </div>
+    <div id="feedbackZone"></div>
+  `;
+
+  document.getElementById("resetBtn").addEventListener("click", () => {
+    placed = [];
+    answered = false;
+    drawTiles();
+  });
+  document.getElementById("checkBtn").addEventListener("click", checkAnswer);
+
+  drawTiles();
+}
+
+function drawTiles(){
+  const railEl = document.getElementById("rail");
+  const bankEl = document.getElementById("bank");
+  const data = SENTENCES[current];
+
+  railEl.className = "rail" + (placed.length ? " filled" : "");
+  railEl.innerHTML = "";
+  if(placed.length === 0){
+    railEl.innerHTML = `<span class="rail-placeholder">Your sentence will appear here…</span>`;
+  } else {
+    placed.forEach((idx, order) => {
+      const t = document.createElement("button");
+      t.type = "button";
+      t.className = "tile placed";
+      t.setAttribute("data-order", order + 1);
+      t.textContent = data.words[idx];
+      t.disabled = answered;
+      t.addEventListener("click", () => {
+        placed = placed.filter(p => p !== idx);
+        drawTiles();
+      });
+      railEl.appendChild(t);
+    });
+  }
+
+  bankEl.innerHTML = "";
+  bank.forEach(idx => {
+    if(placed.includes(idx)) return;
+    const t = document.createElement("button");
+    t.type = "button";
+    t.className = "tile";
+    t.textContent = data.words[idx];
+    t.disabled = answered;
+    t.addEventListener("click", () => {
+      placed.push(idx);
+      drawTiles();
+    });
+    bankEl.appendChild(t);
+  });
+
+  const checkBtn = document.getElementById("checkBtn");
+  if(checkBtn){
+    checkBtn.disabled = placed.length !== data.words.length || answered;
+  }
+}
+
+function checkAnswer(){
+  const data = SENTENCES[current];
+  const isCorrect = placed.every((idx, i) => idx === i);
+  answered = true;
+
+  if(isCorrect) score++;
+  history[current] = {
+    correct: isCorrect,
+    userSentence: placed.map(i => data.words[i]).join(" "),
+    correctSentence: data.words.join(" ")
+  };
+
+  renderProgress();
+  drawTiles();
+
+  const zone = document.getElementById("feedbackZone");
+  zone.innerHTML = `
+    <div class="feedback ${isCorrect ? "correct" : "wrong"}">
+      <p class="fb-title">${isCorrect ? "✓ Correct!" : "✕ Not quite"}</p>
+      <span class="fb-tag">${data.type}</span>
+      <p class="fb-sentence">${data.words.join(" ")}</p>
+      <p class="fb-tip">${data.tip}</p>
+      <div class="actions" style="margin-top:.9rem;">
+        <button class="btn btn-primary" id="nextBtn" type="button">
+          ${current === SENTENCES.length - 1 ? "See results" : "Next sentence"}
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("nextBtn").addEventListener("click", () => {
+    current++;
+    placed = [];
+    answered = false;
+    if(isFinished()){
+      renderResults();
+    } else {
+      loadSentence();
+    }
+  });
+}
+
+/* ---------------------------------------------------------
+   RENDER: RESULTS SCREEN
+--------------------------------------------------------- */
+function renderResults(){
+  progressEl.innerHTML = "";
+  renderProgress();
+
+  let msg;
+  if(score === SENTENCES.length) msg = "Perfect! You've mastered the structure of could.";
+  else if(score >= SENTENCES.length - 1) msg = "Great job! Just one small thing to review.";
+  else if(score >= SENTENCES.length / 2) msg = "Good try. Review the structure and play again.";
+  else msg = "Keep practicing the structure of could — you've got this!";
+
+  const reviewHtml = history.map((h) => `
+    <div class="review-item">
+      <div class="review-icon ${h.correct ? "ok" : "no"}">${h.correct ? "✓" : "✕"}</div>
+      <div class="review-text">
+        <div class="r-correct">${escapeHtml(h.correctSentence)}</div>
+        ${h.correct ? "" : `<div class="r-user">Your answer: ${escapeHtml(h.userSentence)}</div>`}
+      </div>
+    </div>
+  `).join("");
+
+  cardEl.innerHTML = `
+    <div class="results">
+      <h2>Results for ${escapeHtml(playerName)}</h2>
+      <div class="score-big">${score}<span>/${SENTENCES.length}</span></div>
+      <p class="score-msg">${msg}</p>
+      ${reviewHtml}
+      <div class="center">
+        <button class="btn btn-primary" id="restartBtn" type="button">Play again</button>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("restartBtn").addEventListener("click", renderStart);
+}
+
+/* ---------------------------------------------------------
+   FLOW CONTROL
+--------------------------------------------------------- */
+function loadSentence(){
+  bank = shuffledIndices(SENTENCES[current].words.length);
+  placed = [];
+  answered = false;
+  renderGame();
+}
+
+function startGame(){
+  current = 0;
+  score = 0;
+  history = [];
+  loadSentence();
+}
+
+renderStart();
+</script>
+</body>
+</html>
