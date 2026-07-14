@@ -2,7 +2,7 @@
 
 An interactive web game to practice the modal verb **could** in English — build scrambled sentences in the correct order, get instant feedback, and see your final score. Built for English learners.
 
-**Play it here:** ``
+**Play it here:** `https://joanescalante16.github.io/Could-Sentence-Builder/`
 
 
 ---
